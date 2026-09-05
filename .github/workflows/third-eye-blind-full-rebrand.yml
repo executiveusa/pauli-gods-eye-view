@@ -31,7 +31,7 @@ jobs:
           TEXT_EXTS = {'.html', '.js', '.mjs', '.css', '.md', '.json', '.yml', '.yaml', '.txt'}
           SKIP_DIRS = {'.git', 'node_modules', 'dist', 'coverage'}
           SELF = '.github/workflows/third-eye-blind-full-rebrand.yml'
-          PROTECTED_SCHEMA = 'src/voice/gevActions.js'
+          PROTECTED = {SELF, 'src/voice/gevActions.js', 'vite.config.js'}
 
           replacements = [
               ("GOD'S EYE VIEW", "THIRD EYE BLIND"),
@@ -61,7 +61,7 @@ jobs:
               if any(part in SKIP_DIRS for part in p.parts):
                   continue
               path = p.as_posix()
-              if path in {SELF, PROTECTED_SCHEMA}:
+              if path in PROTECTED:
                   continue
               try:
                   text = p.read_text(encoding='utf-8')
@@ -70,9 +70,6 @@ jobs:
               original = text
               for old, new in replacements:
                   text = text.replace(old, new)
-              # Only product-facing runtime surfaces get the old display acronym
-              # expanded. Internal gev/Gev namespaces and the pinned tool schema
-              # are compatibility contracts and stay byte-stable.
               if path in gev_brand_files:
                   text = re.sub(r'\bGEV\b', 'Third Eye Blind', text)
               if text != original:
@@ -92,7 +89,7 @@ jobs:
           from pathlib import Path
           import re
 
-          protected = {'src/voice/gevActions.js', '.github/workflows/third-eye-blind-full-rebrand.yml'}
+          protected = {'src/voice/gevActions.js', 'vite.config.js', '.github/workflows/third-eye-blind-full-rebrand.yml'}
           hits = []
           for p in Path('.').rglob('*'):
               if not p.is_file() or '.git' in p.parts or 'node_modules' in p.parts:
