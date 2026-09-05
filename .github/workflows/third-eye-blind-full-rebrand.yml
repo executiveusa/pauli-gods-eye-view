@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: 24.14.0
           cache: npm
-      - name: Rebrand user-facing product copy without breaking compatibility identifiers
+      - name: Rebrand product-facing copy while preserving compatibility contracts
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -30,6 +30,8 @@ jobs:
           ROOT = Path('.')
           TEXT_EXTS = {'.html', '.js', '.mjs', '.css', '.md', '.json', '.yml', '.yaml', '.txt'}
           SKIP_DIRS = {'.git', 'node_modules', 'dist', 'coverage'}
+          SELF = '.github/workflows/third-eye-blind-full-rebrand.yml'
+          PROTECTED_SCHEMA = 'src/voice/gevActions.js'
 
           replacements = [
               ("GOD'S EYE VIEW", "THIRD EYE BLIND"),
@@ -38,9 +40,19 @@ jobs:
               ("GOD’S EYE VIEW", "THIRD EYE BLIND"),
               ("God’s Eye View", "Third Eye Blind"),
               ("god’s eye view", "third eye blind"),
+              ("GOD\\'S EYE VIEW", "THIRD EYE BLIND"),
+              ("God\\'s Eye View", "Third Eye Blind"),
+              ("god\\'s eye view", "third eye blind"),
               ("<span>GOD'S EYE <span class=\"title-accent\">VIEW</span></span>", "<span>THIRD EYE <span class=\"title-accent\">BLIND</span></span>"),
               ("<h2>GOD'S EYE <span class=\"title-accent\">VIEW</span></h2>", "<h2>THIRD EYE <span class=\"title-accent\">BLIND</span></h2>"),
           ]
+          gev_brand_files = {
+              'index.html',
+              'src/main.js',
+              'src/ui.js',
+              'src/voice/gevRealtime.js',
+              'src/voice/gevRealtime.test.mjs',
+          }
 
           changed = []
           for p in ROOT.rglob('*'):
@@ -48,7 +60,8 @@ jobs:
                   continue
               if any(part in SKIP_DIRS for part in p.parts):
                   continue
-              if p.as_posix() == '.github/workflows/third-eye-blind-full-rebrand.yml':
+              path = p.as_posix()
+              if path in {SELF, PROTECTED_SCHEMA}:
                   continue
               try:
                   text = p.read_text(encoding='utf-8')
@@ -57,10 +70,14 @@ jobs:
               original = text
               for old, new in replacements:
                   text = text.replace(old, new)
-              text = re.sub(r'\bGEV\b', 'THIRD EYE BLIND', text)
+              # Only product-facing runtime surfaces get the old display acronym
+              # expanded. Internal gev/Gev namespaces and the pinned tool schema
+              # are compatibility contracts and stay byte-stable.
+              if path in gev_brand_files:
+                  text = re.sub(r'\bGEV\b', 'Third Eye Blind', text)
               if text != original:
                   p.write_text(text, encoding='utf-8')
-                  changed.append(p.as_posix())
+                  changed.append(path)
 
           Path('/tmp/rebrand-changed-files.txt').write_text('\n'.join(changed) + '\n', encoding='utf-8')
           print('Changed files:')
@@ -69,24 +86,35 @@ jobs:
           if not changed:
               raise SystemExit('No legacy brand copy found; refusing empty rebrand commit')
           PY
-      - name: Verify no legacy visible brand tokens remain
+      - name: Verify product-facing legacy branding is gone
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
+
+          protected = {'src/voice/gevActions.js', '.github/workflows/third-eye-blind-full-rebrand.yml'}
           hits = []
-          exts = {'.html', '.js', '.mjs', '.css', '.md', '.json', '.yml', '.yaml', '.txt'}
           for p in Path('.').rglob('*'):
-              if not p.is_file() or p.suffix.lower() not in exts or '.git' in p.parts or 'node_modules' in p.parts:
+              if not p.is_file() or '.git' in p.parts or 'node_modules' in p.parts:
                   continue
-              if p.as_posix() == '.github/workflows/third-eye-blind-full-rebrand.yml':
+              path = p.as_posix()
+              if path in protected or p.suffix.lower() not in {'.html','.js','.mjs','.css','.md','.json','.yml','.yaml','.txt'}:
                   continue
               text = p.read_text(encoding='utf-8', errors='ignore')
-              if re.search(r"God['’]s Eye View|GOD['’]S EYE VIEW|\bGEV\b", text):
-                  hits.append(p.as_posix())
+              if re.search(r"God(?:\\?['’])s Eye View|GOD(?:\\?['’])S EYE VIEW", text):
+                  hits.append(path)
           if hits:
-              raise SystemExit('Legacy brand tokens remain in: ' + ', '.join(hits))
-          print('Legacy visible brand scan: clean')
+              raise SystemExit('Legacy full product name remains in: ' + ', '.join(hits))
+
+          display_files = ['index.html', 'src/main.js', 'src/ui.js', 'src/voice/gevRealtime.js']
+          display_hits = []
+          for path in display_files:
+              text = Path(path).read_text(encoding='utf-8', errors='ignore')
+              if re.search(r'\bGEV\b', text):
+                  display_hits.append(path)
+          if display_hits:
+              raise SystemExit('Legacy display acronym remains in product-facing runtime files: ' + ', '.join(display_hits))
+          print('Third Eye Blind product-facing brand scan: clean')
           PY
       - name: Install locked dependencies
         run: npm ci
