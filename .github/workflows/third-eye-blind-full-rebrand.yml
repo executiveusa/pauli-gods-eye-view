@@ -1,0 +1,98 @@
+name: Third Eye Blind full rebrand
+
+on:
+  push:
+    paths:
+      - '.github/workflows/third-eye-blind-full-rebrand.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  rebrand:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebrand user-facing product copy without breaking compatibility identifiers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          ROOT = Path('.')
+          TEXT_EXTS = {'.html', '.js', '.mjs', '.css', '.md', '.json', '.yml', '.yaml', '.txt'}
+          SKIP_DIRS = {'.git', 'node_modules', 'dist', 'coverage'}
+
+          replacements = [
+              ("GOD'S EYE VIEW", "THIRD EYE BLIND"),
+              ("God's Eye View", "Third Eye Blind"),
+              ("god's eye view", "third eye blind"),
+              ("GOD’S EYE VIEW", "THIRD EYE BLIND"),
+              ("God’s Eye View", "Third Eye Blind"),
+              ("god’s eye view", "third eye blind"),
+              ("<span>GOD'S EYE <span class=\"title-accent\">VIEW</span></span>", "<span>THIRD EYE <span class=\"title-accent\">BLIND</span></span>"),
+              ("<h2>GOD'S EYE <span class=\"title-accent\">VIEW</span></h2>", "<h2>THIRD EYE <span class=\"title-accent\">BLIND</span></h2>"),
+          ]
+
+          changed = []
+          for p in ROOT.rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in TEXT_EXTS:
+                  continue
+              if any(part in SKIP_DIRS for part in p.parts):
+                  continue
+              if p.as_posix() == '.github/workflows/third-eye-blind-full-rebrand.yml':
+                  continue
+              try:
+                  text = p.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              original = text
+              for old, new in replacements:
+                  text = text.replace(old, new)
+              # Uppercase GEV is the old product-facing acronym. Lowercase/mixed
+              # gev/Gev identifiers remain untouched for storage/event/API compatibility.
+              text = re.sub(r'\bGEV\b', 'THIRD EYE BLIND', text)
+              if text != original:
+                  p.write_text(text, encoding='utf-8')
+                  changed.append(p.as_posix())
+
+          print('Changed files:')
+          for path in changed:
+              print(' -', path)
+
+          if not changed:
+              raise SystemExit('No legacy brand copy found; refusing empty rebrand commit')
+          PY
+      - name: Verify no legacy visible brand tokens remain
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          hits = []
+          exts = {'.html', '.js', '.mjs', '.css', '.md', '.json', '.yml', '.yaml', '.txt'}
+          for p in Path('.').rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in exts or '.git' in p.parts or 'node_modules' in p.parts:
+                  continue
+              if p.as_posix() == '.github/workflows/third-eye-blind-full-rebrand.yml':
+                  continue
+              text = p.read_text(encoding='utf-8', errors='ignore')
+              if re.search(r"God['’]s Eye View|GOD['’]S EYE VIEW|\bGEV\b", text):
+                  hits.append(p.as_posix())
+          if hits:
+              raise SystemExit('Legacy brand tokens remain in: ' + ', '.join(hits))
+          print('Legacy visible brand scan: clean')
+          PY
+      - name: Run project checks
+        run: |
+          npm ci
+          npm test -- --runInBand || npm test
+          npm run build
+      - name: Commit branding pass and remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/third-eye-blind-full-rebrand.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "Rebrand app throughout as Third Eye Blind"
+          git push
