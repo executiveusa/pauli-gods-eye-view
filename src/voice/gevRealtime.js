@@ -388,7 +388,7 @@ export class GevRealtimeController {
       const costState = this.costTracker.state();
       if (!costState.ratesRecognized) {
         console.warn(
-          `[GEV voice] unrecognised Realtime model "${costState.modelId}" — `
+          `[Third Eye Blind voice] unrecognised Realtime model "${costState.modelId}" — `
           + 'billing this session at the most expensive known rates. Update the '
           + 'rate table in src/voice/voiceCost.js.'
         );
@@ -917,7 +917,7 @@ export class GevRealtimeController {
 
   sendTextCommand(text) {
     if (!this.dc || this.dc.readyState !== 'open') {
-      throw new Error('GEV voice is not connected');
+      throw new Error('Third Eye Blind voice is not connected');
     }
     const cleanText = String(text || '').trim();
     if (!cleanText) return;
@@ -1022,7 +1022,7 @@ export class GevRealtimeController {
         // Never replay: the rejected turn is dropped, not retried. Re-arming
         // here is how one collision becomes the same sentence twice.
         this.pendingUserTextResponse = false;
-        console.warn('[GEV Realtime] Skipped overlapping response.create');
+        console.warn('[Third Eye Blind Realtime] Skipped overlapping response.create');
         this.debugLog('response.create.skipped_active', {
           eventId: payload.event_id,
           activeResponseMessage: payload.error?.message || null,
@@ -1037,7 +1037,7 @@ export class GevRealtimeController {
       // event_id of a delete we issued.
       if (isBenignViewportDeleteError(payload, this.pendingViewportDeletes)) {
         if (payload.event_id) this.pendingViewportDeletes.delete(payload.event_id);
-        console.warn('[GEV Realtime] Ignored stale viewport item_not_found', payload.error?.code || null);
+        console.warn('[Third Eye Blind Realtime] Ignored stale viewport item_not_found', payload.error?.code || null);
         this.debugLog('viewport_delete.item_not_found', {
           eventId: payload.event_id || null,
           code: payload.error?.code || null,
@@ -1282,7 +1282,7 @@ export class GevRealtimeController {
           : null;
         result = {
           ok: false,
-          error: error?.message || 'GEV command failed',
+          error: error?.message || 'Third Eye Blind command failed',
           tool: call.name,
           ...(isRadioFeatureCall ? readLayerLifecycleSummary(this.dataManager, 'radio', {
             fallbackEnabled: authoritativeRadioState?.enabled,
@@ -1414,7 +1414,7 @@ export class GevRealtimeController {
         content: [
           {
             type: 'input_text',
-            text: "Current God's Eye View viewport screenshot. Read any clearly visible street, building, and place labels in the image and combine them with the structured nearbyPlaces, streetLabels, and scene context. Do not invent labels that are not legible.",
+            text: "Current Third Eye Blind viewport screenshot. Read any clearly visible street, building, and place labels in the image and combine them with the structured nearbyPlaces, streetLabels, and scene context. Do not invent labels that are not legible.",
           },
           {
             type: 'input_image',
@@ -1695,7 +1695,7 @@ export class GevRealtimeController {
     this.errors.unshift(record);
     this.errors.length = Math.min(this.errors.length, ERROR_LOG_LIMIT);
     storeErrors(this.errors);
-    console.error('[GEV Realtime]', record);
+    console.error('[Third Eye Blind Realtime]', record);
     this.debugLog('error', record);
     this.setStatus('error', formatErrorForDisplay(record));
     return record;
@@ -1870,7 +1870,7 @@ export class GevRealtimeController {
     if (state.warnCrossed) {
       // Exactly one line — the latch in the tracker guarantees it.
       console.warn(
-        `[GEV voice] session cost ${state.display} crossed the ${formatCostUsd(
+        `[Third Eye Blind voice] session cost ${state.display} crossed the ${formatCostUsd(
           state.warnUsd
         )} warning threshold (model ${state.modelId}); hard cap ${formatCostUsd(state.capUsd)}.`
       );
@@ -1898,7 +1898,7 @@ export class GevRealtimeController {
     if (this.costCapStopped) return;
     this.costCapStopped = true;
     console.warn(
-      `[GEV voice] session cost ${state.display} reached the ${formatCostUsd(
+      `[Third Eye Blind voice] session cost ${state.display} reached the ${formatCostUsd(
         state.capUsd
       )} cap — ending the voice session.`
     );
@@ -2036,7 +2036,7 @@ function responseInstructionForToolResult(result) {
     return 'Briefly confirm the completed Radio action, then say that Radio remains stopped as requested. Do not say the request was cancelled or that Radio is playing.';
   }
   if (result?.action === 'control_radio' && result.radioPlaybackRequested) {
-    return 'Briefly confirm any other completed GEV actions, then say “Turning on the radio.” Do not claim Radio is already playing.';
+    return 'Briefly confirm any other completed Third Eye Blind actions, then say “Turning on the radio.” Do not claim Radio is already playing.';
   }
   if (result?.action === 'get_entity_context') {
     const selectedLayerId = result.selected?.layerId;
@@ -2058,7 +2058,7 @@ function responseInstructionForToolResult(result) {
       aircraftRules.push('Never infer operator, type, or route from the callsign.');
     }
     return [
-      'Answer the user naturally using the returned GEV entity context.',
+      'Answer the user naturally using the returned Third Eye Blind entity context.',
       'If selected context is present, prioritize it. Otherwise summarize the most relevant in-view entities.',
       'If no entities are returned, identify the target from nearbyPlaces, place labels, streetLabels, knownLandmarks, and the viewport image.',
       'Mention only useful building/place names, streets, layer/type, location, enabled layers, and notable properties. Be concise.',
@@ -2066,7 +2066,7 @@ function responseInstructionForToolResult(result) {
     ].join(' ');
   }
   if (result?.action === 'get_current_view_state') {
-    return 'Briefly summarize the current GEV camera, active style, and relevant enabled layers. Do not repeat yourself.';
+    return 'Briefly summarize the current Third Eye Blind camera, active style, and relevant enabled layers. Do not repeat yourself.';
   }
   if (result?.action === 'adjust_camera_zoom') {
     return result.ok
@@ -2100,7 +2100,7 @@ function responseInstructionForToolResult(result) {
   if (result?.action === 'clear_annotations') {
     return 'The map annotations are cleared. Continue naturally; do not announce the clear.';
   }
-  return 'Briefly confirm the completed GEV action once. Do not repeat yourself.';
+  return 'Briefly confirm the completed Third Eye Blind action once. Do not repeat yourself.';
 }
 
 function createDebugSessionId() {
@@ -2199,7 +2199,7 @@ async function captureViewportImage() {
   try {
     ctx.drawImage(source, 0, 0, width, height);
     if (isNearlyBlackFrame(ctx, width, height)) {
-      console.warn('[GEV Voice] Skipped black Cesium viewport capture');
+      console.warn('[Third Eye Blind Voice] Skipped black Cesium viewport capture');
       return null;
     }
     const dataUrl = canvas.toDataURL('image/jpeg', 0.74);
@@ -2207,7 +2207,7 @@ async function captureViewportImage() {
     // would still overflow the data channel, skip the image rather than let the
     // send throw and strand the turn (M13). The caller falls through without it.
     if (estimateDataUrlBytes(dataUrl) > VIEWPORT_MAX_ENCODED_BYTES) {
-      console.warn('[GEV Voice] Skipped oversized viewport capture', {
+      console.warn('[Third Eye Blind Voice] Skipped oversized viewport capture', {
         bytes: estimateDataUrlBytes(dataUrl),
         limit: VIEWPORT_MAX_ENCODED_BYTES,
       });
@@ -2317,10 +2317,10 @@ async function fetchRealtimeToken(tier = DEFAULT_VOICE_TIER) {
   const data = await response.json().catch(() => null);
   // Server echo first (authoritative, always present); the minted session
   // config is the fallback when a proxy strips headers.
-  const servedModel = response.headers?.get?.('X-GEV-Voice-Model')
+  const servedModel = response.headers?.get?.('X-Third Eye Blind-Voice-Model')
     || data?.session?.model
     || null;
-  const servedTier = response.headers?.get?.('X-GEV-Voice-Tier') || null;
+  const servedTier = response.headers?.get?.('X-Third Eye Blind-Voice-Tier') || null;
   if (!response.ok) {
     // OpenAI error bodies are objects ({error:{message,type,...}}); only the
     // key-absent server case is a bare string. Render either without the

@@ -64,7 +64,7 @@ function describeError(error) {
 }
 
 /**
- * GOD'S EYE VIEW — Main Entry Point
+ * THIRD EYE BLIND — Main Entry Point
  * Initializes CesiumJS with Google Photorealistic 3D Tiles,
  * style system, intelligence HUD, location presets, and share links.
  */
@@ -75,7 +75,7 @@ async function init() {
   try {
     loaderStatus.textContent = 'Configuring viewer...';
 
-    // A direct Google key provides Google 3D plus GEV place search. Cesium ion
+    // A direct Google key provides Google 3D plus Third Eye Blind place search. Cesium ion
     // can host the same 3D tiles and also powers Bing/world-terrain stacks.
     const cesiumToken = import.meta.env.CESIUM_ION_TOKEN;
     const googleApiKey = import.meta.env.GOOGLE_MAPS_API_KEY;
@@ -329,7 +329,7 @@ async function init() {
     window.__godsEyeView.voiceCommands = initGevVoiceCommands({ viewer, styleManager, dataManager, sceneDirector, annotations });
 
   } catch (error) {
-    console.error("God's Eye View initialization failed:", error);
+    console.error("Third Eye Blind initialization failed:", error);
     loaderStatus.textContent = `Error: ${describeError(error)}`;
     loaderStatus.style.color = '#ff4444';
   }
