@@ -11,8 +11,16 @@ permissions:
 jobs:
   rebrand:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      GEV_REQUIRE_ALLOCATION_GATE: '1'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.0
+          cache: npm
       - name: Rebrand user-facing product copy without breaking compatibility identifiers
         run: |
           python - <<'PY'
@@ -82,11 +90,14 @@ jobs:
               raise SystemExit('Legacy brand tokens remain in: ' + ', '.join(hits))
           print('Legacy visible brand scan: clean')
           PY
-      - name: Run project checks
-        run: |
-          npm ci
-          npm test -- --runInBand || npm test
-          npm run build
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run setup policy checks
+        run: npm run doctor -- --json
+      - name: Run unit tests
+        run: npm test
+      - name: Build production bundle
+        run: npm run build
       - name: Commit branding pass and remove one-shot workflow
         run: |
           git config user.name "github-actions[bot]"
